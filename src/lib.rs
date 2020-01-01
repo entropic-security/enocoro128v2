@@ -27,6 +27,7 @@ impl Enocoro128 {
     // Public APIs -----------------------------------------------------------------------------------------------------
 
     /// Constructor
+    #[allow(clippy::trivially_copy_pass_by_ref)]
     pub fn new(key: &[u8; E128_KEY_SIZE_BYTE], iv: &[u8; E128_IV_SIZE_BYTE]) -> Enocoro128 {
         let mut e128 = Enocoro128 {
             key: [0; E128_KEY_SIZE_BYTE],
@@ -81,6 +82,7 @@ impl Enocoro128 {
     }
 
     /// Stateless encryption (keystream XORed with data), uses an ephemeral instance of the cipher state, zeroed on drop
+    #[allow(clippy::trivially_copy_pass_by_ref)]
     pub fn encrypt_static(
         key: &[u8; E128_KEY_SIZE_BYTE],
         iv: &[u8; E128_IV_SIZE_BYTE],
@@ -96,6 +98,7 @@ impl Enocoro128 {
     }
 
     /// Stateless encryption (keystream XORed with data), uses an ephemeral instance of the cipher state, zeroed on drop
+    #[allow(clippy::trivially_copy_pass_by_ref)]
     pub fn decrypt_static(
         key: &[u8; E128_KEY_SIZE_BYTE],
         iv: &[u8; E128_IV_SIZE_BYTE],
