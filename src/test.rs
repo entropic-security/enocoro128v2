@@ -8,7 +8,7 @@ use std::io::{BufRead, BufReader};
 use std::vec::Vec;
 use std::{env, format, println};
 
-use super::*;
+use crate::*;
 
 // TODO: check for consistent comments
 

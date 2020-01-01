@@ -2,15 +2,13 @@
 pub const E128_KEY_SIZE_BYTE: usize = 16;
 pub const E128_IV_SIZE_BYTE: usize = 8;
 
-// Initialization for 32-byte buffer
-pub const E128_BUF_TAIL_INIT: [u8; 8] = [0x66, 0xe9, 0x4b, 0xd4, 0xef, 0x8a, 0x2c, 0x3b];
-pub const E128_STATE_INIT: [u8; 2] = [0x88, 0x4c];
-
 // In-memory state sizing
 pub const E128_BUF_SIZE_BYTE: usize = 32;
 pub const E128_STATE_SIZE_BYTE: usize = 2;
 
-// TODO: lib.rs should only expose the above
+// Initialization for 32-byte buffer
+pub const E128_BUF_TAIL_INIT: [u8; 8] = [0x66, 0xe9, 0x4b, 0xd4, 0xef, 0x8a, 0x2c, 0x3b];
+pub const E128_STATE_INIT: [u8; 2] = [0x88, 0x4c];
 
 /// Next state constants for 128-bit/16-byte key
 pub const K128_1: u8 = 2;

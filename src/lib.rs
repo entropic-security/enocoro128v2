@@ -1,11 +1,15 @@
 #![no_std]
 #![deny(warnings)]
 
-mod consts;
-
-use consts::*;
 use zeroize::Zeroize;
 extern crate static_assertions as sa;
+
+mod consts;
+use consts::*;
+pub use consts::{E128_BUF_SIZE_BYTE, E128_IV_SIZE_BYTE, E128_KEY_SIZE_BYTE, E128_STATE_SIZE_BYTE};
+
+#[cfg(test)]
+mod test;
 
 // Verify reference config at compile time
 sa::const_assert!(E128_KEY_SIZE_BYTE == 16);
@@ -187,10 +191,10 @@ impl Enocoro128 {
 
     // Private APIs ----------------------------------------------------------------------------------------------------
 
-    /// Update cipher state
-    /// TODO: make this configurable for release profile
+    // TODO: make this configurable for release profile
+    /// Update cipher state.
     /// Inlining means 3x code duplication (init, en/decrypt, rand)
-    /// but also removes function call overhead from per-byte processing loops
+    /// but also removes per-byte function call overhead for tight loops.
     #[inline(always)]
     fn next128(&mut self) {
         let mut tmp: [u8; 3] = [0x0, 0x0, 0x0];
@@ -225,7 +229,3 @@ impl Enocoro128 {
         self.buf[self.top as usize] ^= tmp[0];
     }
 }
-
-// TODO: move to lib.rs header
-#[cfg(test)]
-mod test;
