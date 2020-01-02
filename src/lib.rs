@@ -6,24 +6,24 @@ extern crate static_assertions as sa;
 
 mod consts;
 use consts::*;
-pub use consts::{E128_BUF_SIZE_BYTE, E128_IV_SIZE_BYTE, E128_KEY_SIZE_BYTE, E128_STATE_SIZE_BYTE};
+pub use consts::{E128_BUF_LEN, E128_IV_LEN, E128_KEY_LEN, E128_STATE_LEN};
 
 #[cfg(test)]
 mod test;
 
 // Verify reference config at compile time
-sa::const_assert!(E128_KEY_SIZE_BYTE == 16);
-sa::const_assert!(E128_IV_SIZE_BYTE == 8);
+sa::const_assert!(E128_KEY_LEN == 16);
+sa::const_assert!(E128_IV_LEN == 8);
 sa::const_assert!(K128_INIT_ROUND_NUM == 96);
 
 /// Composition of reference implementation's context, state, and buffer structures
 #[derive(Debug, Zeroize)]
 #[zeroize(drop)]
 pub struct Enocoro128 {
-    key: [u8; E128_KEY_SIZE_BYTE],
-    iv: [u8; E128_IV_SIZE_BYTE],
-    state: [u8; E128_STATE_SIZE_BYTE],
-    buf: [u8; E128_BUF_SIZE_BYTE],
+    key: [u8; E128_KEY_LEN],
+    iv: [u8; E128_IV_LEN],
+    state: [u8; E128_STATE_LEN],
+    buf: [u8; E128_BUF_LEN],
     top: u8,
 }
 
@@ -32,12 +32,12 @@ impl Enocoro128 {
 
     /// Constructor
     #[allow(clippy::trivially_copy_pass_by_ref)]
-    pub fn new(key: &[u8; E128_KEY_SIZE_BYTE], iv: &[u8; E128_IV_SIZE_BYTE]) -> Enocoro128 {
+    pub fn new(key: &[u8; E128_KEY_LEN], iv: &[u8; E128_IV_LEN]) -> Enocoro128 {
         let mut e128 = Enocoro128 {
-            key: [0; E128_KEY_SIZE_BYTE],
-            iv: [0; E128_IV_SIZE_BYTE],
-            state: [0; E128_STATE_SIZE_BYTE],
-            buf: [0; E128_BUF_SIZE_BYTE],
+            key: [0; E128_KEY_LEN],
+            iv: [0; E128_IV_LEN],
+            state: [0; E128_STATE_LEN],
+            buf: [0; E128_BUF_LEN],
             top: 0,
         };
 
@@ -53,17 +53,13 @@ impl Enocoro128 {
         let mut ctr = 0x1;
 
         // Verify safe initialization at compile time
-        sa::const_assert!(
-            E128_BUF_SIZE_BYTE
-                == (E128_KEY_SIZE_BYTE + E128_IV_SIZE_BYTE + E128_BUF_TAIL_INIT.len())
-        );
-        sa::const_assert!(E128_STATE_SIZE_BYTE == E128_STATE_INIT.len());
+        sa::const_assert!(E128_BUF_LEN == (E128_KEY_LEN + E128_IV_LEN + E128_BUF_TAIL_INIT.len()));
+        sa::const_assert!(E128_STATE_LEN == E128_STATE_INIT.len());
 
         // Set starting buf
-        self.buf[0..E128_KEY_SIZE_BYTE].copy_from_slice(&self.key);
-        self.buf[E128_KEY_SIZE_BYTE..(E128_KEY_SIZE_BYTE + E128_IV_SIZE_BYTE)]
-            .copy_from_slice(&self.iv);
-        self.buf[(E128_KEY_SIZE_BYTE + E128_IV_SIZE_BYTE)..].copy_from_slice(&E128_BUF_TAIL_INIT);
+        self.buf[0..E128_KEY_LEN].copy_from_slice(&self.key);
+        self.buf[E128_KEY_LEN..(E128_KEY_LEN + E128_IV_LEN)].copy_from_slice(&self.iv);
+        self.buf[(E128_KEY_LEN + E128_IV_LEN)..].copy_from_slice(&E128_BUF_TAIL_INIT);
 
         // Set starting state
         self.state[..].copy_from_slice(&E128_STATE_INIT);
@@ -77,39 +73,25 @@ impl Enocoro128 {
         }
     }
 
-    /// Stateful encryption (current keystream XORed with data), can be called repeatedly to continue applying keystream to data chunks
-    pub fn encrypt(&mut self, data: &mut [u8]) {
+    /// Stateful en/decryption (current keystream XORed with data).
+    /// Can be called repeatedly to continue applying keystream to data chunks of varying sizes.
+    pub fn apply_keystream(&mut self, data: &mut [u8]) {
         for b_ptr in data {
             *b_ptr ^= self.state[1];
             self.next128();
         }
     }
 
-    /// Stateless encryption (keystream XORed with data), uses an ephemeral instance of the cipher state, zeroed on drop
+    /// Stateless en/decryption (keystream XORed with data).
+    /// Uses an ephemeral instance of the cipher, zeroed on drop
     #[allow(clippy::trivially_copy_pass_by_ref)]
-    pub fn encrypt_static(
-        key: &[u8; E128_KEY_SIZE_BYTE],
-        iv: &[u8; E128_IV_SIZE_BYTE],
+    pub fn apply_keystream_static(
+        key: &[u8; E128_KEY_LEN],
+        iv: &[u8; E128_IV_LEN],
         data: &mut [u8],
     ) {
         let mut e128 = Enocoro128::new(key, iv);
-        e128.encrypt(data);
-    }
-
-    /// Stateful decryption (current keystream XORed with data), can be called repeatedly to continue applying keystream to data chunks
-    pub fn decrypt(&mut self, data: &mut [u8]) {
-        self.encrypt(data);
-    }
-
-    /// Stateless encryption (keystream XORed with data), uses an ephemeral instance of the cipher state, zeroed on drop
-    #[allow(clippy::trivially_copy_pass_by_ref)]
-    pub fn decrypt_static(
-        key: &[u8; E128_KEY_SIZE_BYTE],
-        iv: &[u8; E128_IV_SIZE_BYTE],
-        data: &mut [u8],
-    ) {
-        let mut e128 = Enocoro128::new(key, iv);
-        e128.decrypt(data);
+        e128.apply_keystream(data);
     }
 
     /// Fill buffer from keystream
@@ -191,10 +173,10 @@ impl Enocoro128 {
 
     // Private APIs ----------------------------------------------------------------------------------------------------
 
-    // TODO: make this configurable for release profile
+    // Inlining means 3x code duplication (init, en/decrypt, rand)
+    // but also removes per-byte function call overhead for tight loops.
+    // TODO: make this configurable for the "small" profile once custom profiles are on Rust Stable
     /// Update cipher state.
-    /// Inlining means 3x code duplication (init, en/decrypt, rand)
-    /// but also removes per-byte function call overhead for tight loops.
     #[inline(always)]
     fn next128(&mut self) {
         let mut tmp: [u8; 3] = [0x0, 0x0, 0x0];

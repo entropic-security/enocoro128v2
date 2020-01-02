@@ -18,11 +18,11 @@ fn test_enc_dec_stateless() {
     ]; // "Hello world!"
 
     // Encryption changes message
-    Enocoro128::encrypt_static(&KEY, &IV, &mut msg);
+    Enocoro128::apply_keystream_static(&KEY, &IV, &mut msg);
     assert_ne!(msg, plaintext);
 
     // Decryption reverses encryption
-    Enocoro128::decrypt_static(&KEY, &IV, &mut msg);
+    Enocoro128::apply_keystream_static(&KEY, &IV, &mut msg);
     assert_eq!(msg, plaintext);
 }
 
@@ -37,15 +37,15 @@ fn test_enc_dec_stateful() {
     let mut e128 = Enocoro128::new(&KEY, &IV);
 
     // Encryption changes messages/chunks of varying sizes
-    e128.encrypt(&mut msg_1);
-    e128.encrypt(&mut msg_2);
+    e128.apply_keystream(&mut msg_1);
+    e128.apply_keystream(&mut msg_2);
     assert_ne!(msg_1, plaintext_1);
     assert_ne!(msg_2, plaintext_2);
 
     // Decryption reverses encryption
     e128.init_keystream();
-    e128.decrypt(&mut msg_1);
-    e128.decrypt(&mut msg_2);
+    e128.apply_keystream(&mut msg_1);
+    e128.apply_keystream(&mut msg_2);
     assert_eq!(msg_1, plaintext_1);
     assert_eq!(msg_2, plaintext_2);
 }

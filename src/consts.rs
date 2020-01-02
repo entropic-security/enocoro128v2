@@ -1,10 +1,10 @@
-/// Key and IV sizing
-pub const E128_KEY_SIZE_BYTE: usize = 16;
-pub const E128_IV_SIZE_BYTE: usize = 8;
+/// Key and IV sizes (bytes)
+pub const E128_KEY_LEN: usize = 16;
+pub const E128_IV_LEN: usize = 8;
 
-// In-memory state sizing
-pub const E128_BUF_SIZE_BYTE: usize = 32;
-pub const E128_STATE_SIZE_BYTE: usize = 2;
+// In-memory state sizes (bytes)
+pub const E128_BUF_LEN: usize = 32;
+pub const E128_STATE_LEN: usize = 2;
 
 // Initialization for 32-byte buffer
 pub const E128_BUF_TAIL_INIT: [u8; 8] = [0x66, 0xe9, 0x4b, 0xd4, 0xef, 0x8a, 0x2c, 0x3b];

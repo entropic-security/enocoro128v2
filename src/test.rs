@@ -10,41 +10,39 @@ use std::{env, format, println};
 
 use crate::*;
 
-// TODO: check for consistent comments
-
-pub const TV_SIZE_BYTE: usize = 1024;
+pub const TV_LEN: usize = 1024;
 pub const ROUND_START: i64 = -97;
 pub const ROUND_END: i64 = 1023;
 
 // TEST VECTOR FILE LOAD/PARSE #########################################################################################
 
-// Test Vector: state, buffer tuple
+// (state, buffer) tuple
 #[derive(Debug, PartialEq, Eq, Hash)]
 struct RoundData {
-    state: [u8; E128_STATE_SIZE_BYTE],
-    buf: [u8; E128_BUF_SIZE_BYTE],
+    state: [u8; E128_STATE_LEN],
+    buf: [u8; E128_BUF_LEN],
 }
 
-// Test: test vectors by round, all same key and IV
+// (state, buffer) tuples by round, all same key and IV
 struct Test {
-    key: [u8; E128_KEY_SIZE_BYTE],
-    iv: [u8; E128_IV_SIZE_BYTE],
-    tv: [u8; TV_SIZE_BYTE],
+    key: [u8; E128_KEY_LEN],
+    iv: [u8; E128_IV_LEN],
+    tv: [u8; TV_LEN],
     rounds: HashMap<i64, RoundData>,
 }
 
 impl Test {
     pub fn new() -> Test {
         Test {
-            key: [0; E128_KEY_SIZE_BYTE],
-            iv: [0; E128_IV_SIZE_BYTE],
-            tv: [0; TV_SIZE_BYTE],
+            key: [0; E128_KEY_LEN],
+            iv: [0; E128_IV_LEN],
+            tv: [0; TV_LEN],
             rounds: HashMap::new(),
         }
     }
 }
 
-// Possible states for Test Collector
+// Possible states for file parsing state machine
 #[derive(Debug, PartialEq, Eq, Hash)]
 enum TestCollectorState {
     Idle,
@@ -56,7 +54,7 @@ enum TestCollectorState {
     InputTV,
 }
 
-// Test Collector: parses file line-by-line to collect Tests
+// State machine parses file line-by-line to collect Tests
 struct TestCollector {
     collect_state: TestCollectorState,
     tests: Vec<Test>,
@@ -79,6 +77,7 @@ impl TestCollector {
 
     // Public APIs -----------------------------------------------------------------------------------------------------
 
+    // Construct state machine
     pub fn new() -> TestCollector {
         let mut tc = TestCollector {
             collect_state: TestCollectorState::Idle,
@@ -97,7 +96,7 @@ impl TestCollector {
         tc
     }
 
-    // TODO: verify logic
+    // Update state machine
     pub fn process_line(&mut self, line: &str) {
         if line.contains(TestCollector::DELIM_ROUND) {
             self.collect_state = TestCollectorState::InputRound;
@@ -119,6 +118,7 @@ impl TestCollector {
 
     // Private APIs ----------------------------------------------------------------------------------------------------
 
+    // State-based data collection dispatch
     fn collect_data(&mut self, line: &str) {
         match self.collect_state {
             TestCollectorState::InputRound => {
@@ -170,18 +170,19 @@ impl TestCollector {
         }
     }
 
+    // Optional commit of either test or round data
     fn commit_data(&mut self) {
         if self.round_set
-            && (self.curr_state.len() >= E128_STATE_SIZE_BYTE)
-            && (self.curr_buf.len() >= E128_BUF_SIZE_BYTE)
+            && (self.curr_state.len() >= E128_STATE_LEN)
+            && (self.curr_buf.len() >= E128_BUF_LEN)
         {
             self.commit_round();
             self.reset_state_partial();
         }
 
-        if (self.curr_key.len() >= E128_KEY_SIZE_BYTE)
-            && (self.curr_iv.len() >= E128_IV_SIZE_BYTE)
-            && (self.curr_tv.len() >= TV_SIZE_BYTE)
+        if (self.curr_key.len() >= E128_KEY_LEN)
+            && (self.curr_iv.len() >= E128_IV_LEN)
+            && (self.curr_tv.len() >= TV_LEN)
         {
             self.commit_test();
             self.reset_state_full();
@@ -221,8 +222,8 @@ impl TestCollector {
     // Commit RoundData to Test's hashmap
     fn commit_round(&mut self) {
         let mut rd = RoundData {
-            state: [0; E128_STATE_SIZE_BYTE],
-            buf: [0; E128_BUF_SIZE_BYTE],
+            state: [0; E128_STATE_LEN],
+            buf: [0; E128_BUF_LEN],
         };
 
         assert_eq!(rd.state.len(), self.curr_state.len());
@@ -294,9 +295,8 @@ impl TestCollector {
     }
 }
 
-// TEST VECTOR VALIDATION ##############################################################################################
-
-fn test_collector_load() -> TestCollector {
+// Parse unstructured reference test vector text file using a state machine
+fn parse_test_vector_file() -> TestCollector {
     let base = env::current_dir().unwrap();
     let target = base.join("tests").join("official_test_vectors.txt");
     let file = File::open(target).unwrap();
@@ -314,47 +314,51 @@ fn test_collector_load() -> TestCollector {
     tc
 }
 
+// TEST HELPERS ########################################################################################################
+
+// Validate that internal state matches expected
 #[inline(always)]
 fn internals_in_lockstep(e128: &Enocoro128, rd: &RoundData) -> bool {
     ((e128.state == rd.state) && (e128.buf == rd.buf))
 }
 
-// Used for testing to inspect state during initialization rounds (occur within constructor)
+// For inspecting state during initialization rounds (occur within Enocoro128 constructor)
+#[inline(always)]
 fn bypass_constructor(key: &[u8], iv: &[u8]) -> Enocoro128 {
     let mut e128 = Enocoro128 {
-        key: [0; E128_KEY_SIZE_BYTE],
-        iv: [0; E128_IV_SIZE_BYTE],
-        state: [0; E128_STATE_SIZE_BYTE],
-        buf: [0; E128_BUF_SIZE_BYTE],
+        key: [0; E128_KEY_LEN],
+        iv: [0; E128_IV_LEN],
+        state: [0; E128_STATE_LEN],
+        buf: [0; E128_BUF_LEN],
         top: 0,
     };
 
     e128.key[..].copy_from_slice(&key);
     e128.iv[..].copy_from_slice(&iv);
-    e128.buf[0..E128_KEY_SIZE_BYTE].copy_from_slice(&e128.key);
-    e128.buf[E128_KEY_SIZE_BYTE..(E128_KEY_SIZE_BYTE + E128_IV_SIZE_BYTE)]
-        .copy_from_slice(&e128.iv);
-    e128.buf[(E128_KEY_SIZE_BYTE + E128_IV_SIZE_BYTE)..].copy_from_slice(&E128_BUF_TAIL_INIT);
+    e128.buf[0..E128_KEY_LEN].copy_from_slice(&e128.key);
+    e128.buf[E128_KEY_LEN..(E128_KEY_LEN + E128_IV_LEN)].copy_from_slice(&e128.iv);
+    e128.buf[(E128_KEY_LEN + E128_IV_LEN)..].copy_from_slice(&E128_BUF_TAIL_INIT);
     e128.state[..].copy_from_slice(&E128_STATE_INIT);
 
     e128
 }
 
-// TODO: solution to not load test_collector twice
+// TEST VECTOR VALIDATION ##############################################################################################
 
+// Verify internal states
 #[test]
 fn test_internal_states() {
-    let test_collector = test_collector_load();
+    let test_collector = parse_test_vector_file();
 
-    for test in test_collector.tests {
+    for test in &test_collector.tests {
         let mut ctr = 0x1;
         let mut e128 = bypass_constructor(&test.key, &test.iv);
 
+        // Starting state
+        let round_data = test.rounds.get(&ROUND_START).unwrap();
+        assert!(internals_in_lockstep(&e128, round_data));
+
         // Initialization states
-        assert!(internals_in_lockstep(
-            &e128,
-            test.rounds.get(&ROUND_START).unwrap()
-        ));
         for round_num in (ROUND_START + 1)..0 {
             let round_data = test.rounds.get(&round_num).unwrap();
             e128.buf[(e128.top.wrapping_add(K128_SHIFT) & 0x1f) as usize] ^= ctr;
@@ -372,13 +376,14 @@ fn test_internal_states() {
     }
 }
 
+// Verify en/decryption result
 #[test]
 fn test_output() {
-    let test_collector = test_collector_load();
+    let test_collector = parse_test_vector_file();
 
-    for test in test_collector.tests {
-        let mut test_vector = [0; TV_SIZE_BYTE];
-        Enocoro128::encrypt_static(&test.key, &test.iv, &mut test_vector);
+    for test in &test_collector.tests {
+        let mut test_vector = [0; TV_LEN];
+        Enocoro128::apply_keystream_static(&test.key, &test.iv, &mut test_vector);
         assert!(test.tv.iter().zip(test_vector.iter()).all(|(a, b)| a == b));
     }
 }
