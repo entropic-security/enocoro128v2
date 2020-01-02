@@ -111,13 +111,13 @@
 //!
 //! ### References
 //!
-//! * [1] ["Pseudorandom Number Generator Enocoro", Hitachi Corporation (2010)](https://www.hitachi.com/rd/yrl/crypto/enocoro/index.html)
-//! * [2] ["Update on Enocoro Stream Cipher", Dai Watanabe et. al. (2010)](https://ieeexplore.ieee.org/document/5649627)
-//! * [3] ["Specifications of Ciphers in the Candidate Recommended Ciphers List", CRYPTREC (2013)](https://www.cryptrec.go.jp/en/method.html)
-//! * [4] ["Security Evaluation of Stream Cipher Enocoro-128v2", Martin Hell and Thomas Johansson (2010)](https://www.cryptrec.go.jp/exreport/cryptrec-ex-2008-2010.pdf)
-//! * [5] ["zeroize", Tony Arcieri (2019)](https://crates.io/crates/zeroize)
-//! * [6] [enocoro_ref_20100222.zip, Hitachi Corporation (2010)](https://www.hitachi.com/rd/yrl/crypto/enocoro/enocoro_ref_20100222.zip)
-//! * [7] [enocoro_tv_20100202.zip, Hitachi Corporation (2010)](https://www.hitachi.com/rd/yrl/crypto/enocoro/enocoro_ref_20100222.zip)
+//! * \[1\] ["Pseudorandom Number Generator Enocoro", Hitachi Corporation (2010)](https://www.hitachi.com/rd/yrl/crypto/enocoro/index.html)
+//! * \[2\] ["Update on Enocoro Stream Cipher", Dai Watanabe et. al. (2010)](https://ieeexplore.ieee.org/document/5649627)
+//! * \[3\] ["Specifications of Ciphers in the Candidate Recommended Ciphers List", CRYPTREC (2013)](https://www.cryptrec.go.jp/en/method.html)
+//! * \[4\] ["Security Evaluation of Stream Cipher Enocoro-128v2", Martin Hell and Thomas Johansson (2010)](https://www.cryptrec.go.jp/exreport/cryptrec-ex-2008-2010.pdf)
+//! * \[5\] ["zeroize", Tony Arcieri (2019)](https://crates.io/crates/zeroize)
+//! * \[6\] [enocoro_ref_20100222.zip, Hitachi Corporation (2010)](https://www.hitachi.com/rd/yrl/crypto/enocoro/enocoro_ref_20100222.zip)
+//! * \[7\] [enocoro_tv_20100202.zip, Hitachi Corporation (2010)](https://www.hitachi.com/rd/yrl/crypto/enocoro/enocoro_ref_20100222.zip)
 
 #![no_std]
 #![deny(warnings)]
