@@ -9,8 +9,15 @@ homepage = "https://github.com/entropy-security/enocoro128v2"
 repository = "https://github.com/entropy-security/enocoro128v2"
 documentation = "https://docs.rs/enocoro128v2"
 categories = ["cryptography", "no-std", "embedded"]
-keywords = ["stream cipher", "no-std", "enocoro", "enocoro128", "enocoro128v2"]
+keywords = ["encryption", "no-std", "enocoro", "enocoro128", "enocoro128v2"]
 description = "Safe, no-std Enocoro-128 (Version 2) stream cipher implementation. Verified using Hitachi's official test vectors."
+include = [
+    "**/*.rs",
+    "**/*.md",
+    "**/*.txt",
+    "Cargo.toml",
+    "LICENSE",
+]
 
 [dependencies]
 zeroize = {version = "1.1.0", features = ["zeroize_derive"], default-features = false}
