@@ -52,38 +52,38 @@ fn test_enc_dec_stateful() {
 
 #[test]
 fn test_rand() {
-    let mut rand_buf = [0; 3];
-    let mut rand_u8: u8 = 0;
-    let mut rand_u16: u16 = 0;
-    let mut rand_u32: u32 = 0;
-    let mut rand_u64: u64 = 0;
-    let mut rand_u128: u128 = 0;
+    let mut my_rand_buf = [0; 3];
+    let mut my_rand_u8: u8 = 0;
+    let mut my_rand_u16: u16 = 0;
+    let mut my_rand_u32: u32 = 0;
+    let mut my_rand_u64: u64 = 0;
+    let mut my_rand_u128: u128 = 0;
 
     // Avoid warning about assigned value never being read
-    assert!(rand_buf.iter().all(|&x| x == 0));
-    assert_eq!(rand_u8, 0);
-    assert_eq!(rand_u16, 0);
-    assert_eq!(rand_u32, 0);
-    assert_eq!(rand_u64, 0);
-    assert_eq!(rand_u128, 0);
+    assert!(my_rand_buf.iter().all(|&x| x == 0));
+    assert_eq!(my_rand_u8, 0);
+    assert_eq!(my_rand_u16, 0);
+    assert_eq!(my_rand_u32, 0);
+    assert_eq!(my_rand_u64, 0);
+    assert_eq!(my_rand_u128, 0);
 
     let mut e128 = Enocoro128::new(&KEY, &IV);
 
-    e128.rand_buf(&mut rand_buf);
-    assert!(rand_buf.iter().all(|&x| x != 0));
+    e128.rand_buf(&mut my_rand_buf);
+    assert!(my_rand_buf.iter().all(|&x| x != 0));
 
-    rand_u8 = e128.rand_u8();
-    assert_ne!(rand_u8, 0);
+    my_rand_u8 = e128.rand_u8();
+    assert_ne!(my_rand_u8, 0);
 
-    rand_u16 = e128.rand_u16();
-    assert_ne!(rand_u16, 0);
+    my_rand_u16 = e128.rand_u16();
+    assert_ne!(my_rand_u16, 0);
 
-    rand_u32 = e128.rand_u32();
-    assert_ne!(rand_u32, 0);
+    my_rand_u32 = e128.rand_u32();
+    assert_ne!(my_rand_u32, 0);
 
-    rand_u64 = e128.rand_u64();
-    assert_ne!(rand_u64, 0);
+    my_rand_u64 = e128.rand_u64();
+    assert_ne!(my_rand_u64, 0);
 
-    rand_u128 = e128.rand_u128();
-    assert_ne!(rand_u128, 0);
+    my_rand_u128 = e128.rand_u128();
+    assert_ne!(my_rand_u128, 0);
 }
