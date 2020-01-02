@@ -1,39 +1,165 @@
+//! Safe Rust, `#![no_std]` implementation of Enocoro-128v2 [1], the updated variant [2] of a lightweight, CRYPTREC candidate [3] stream cipher.
+//! No practical attacks against Enocoro-128v2 have been reported [4].
+//!
+//! ### Functionality
+//!
+//! * Symmetric-key encryption
+//! * Pseudo-Random Number Generator (PRNG)
+//!
+//! ### Implementation
+//!
+//! * Operational in baremetal environments: no standard library dependencies, no dynamic memory allocation
+//! * State securely wiped from memory on drop [5]
+//! * Close mapping to Hitachi's C reference implementation [6] for audit-friendly code
+//! * Verified using Hitachi's official test vectors [7]
+//!
+//! ### Usage
+//!
+//!
+//! When the entirety of the plaintext or ciphertext is in-memory at once, a simplified API can be used:
+//!
+//! ```
+//! use enocoro128v2::Enocoro128;
+//!
+//! let key: [u8; 16] = [
+//!     0x4b, 0x8e, 0x29, 0x87, 0x80, 0x95, 0x96, 0xa3,
+//!     0xbb, 0x23, 0x82, 0x49, 0x9f, 0x1c, 0xe7, 0xc2,
+//! ];
+//!
+//! let iv: [u8; 8] = [0x3c, 0x1d, 0xbb, 0x05, 0xe3, 0xca, 0x60, 0xd9];
+//!
+//! let plaintext = [
+//!     0x48, 0x65, 0x6c, 0x6c, 0x6f, 0x20, 0x57, 0x6f, 0x72, 0x6c, 0x64, 0x21,
+//! ]; // "Hello world!"
+//!
+//! let mut msg: [u8; 12] = plaintext.clone();
+//!
+//! // Encrypt in-place
+//! Enocoro128::apply_keystream_static(&key, &iv, &mut msg);
+//! assert_ne!(msg, plaintext);
+//!
+//! // Decrypt in-place
+//! Enocoro128::apply_keystream_static(&key, &iv, &mut msg);
+//! assert_eq!(msg, plaintext);
+//! ```
+//!
+//! If entirety of the plaintext or ciphertext is never in memory at once (e.g. data received/transmitted in chunks, potentially of varying sizes):
+//!
+//! ```
+//! use enocoro128v2::Enocoro128;
+//!
+//! let key: [u8; 16] = [
+//!     0x4b, 0x8e, 0x29, 0x87, 0x80, 0x95, 0x96, 0xa3,
+//!     0xbb, 0x23, 0x82, 0x49, 0x9f, 0x1c, 0xe7, 0xc2,
+//! ];
+//!
+//! let iv: [u8; 8] = [0x3c, 0x1d, 0xbb, 0x05, 0xe3, 0xca, 0x60, 0xd9];
+//!
+//! let plaintext_1 = [0x48, 0x65, 0x6c, 0x6c, 0x6f]; // "Hello"
+//! let plaintext_2 = [0x20, 0x57, 0x6f, 0x72, 0x6c, 0x64, 0x21]; // " world!"
+//!
+//! let mut msg_1 = plaintext_1.clone();
+//! let mut msg_2 = plaintext_2.clone();
+//!
+//! // Create an instance of the cipher
+//! let mut e128 = Enocoro128::new(&key, &iv);
+//!
+//! // Encrypt in-place
+//! e128.apply_keystream(&mut msg_1);
+//! e128.apply_keystream(&mut msg_2);
+//! assert_ne!(msg_1, plaintext_1);
+//! assert_ne!(msg_2, plaintext_2);
+//!
+//! // Reset keystream prior to decryption
+//! e128.init_keystream();
+//!
+//! // Decrypt in-place
+//! e128.apply_keystream(&mut msg_1);
+//! e128.apply_keystream(&mut msg_2);
+//! assert_eq!(msg_1, plaintext_1);
+//! assert_eq!(msg_2, plaintext_2);
+//! ```
+//!
+//! To generate random buffers or numbers from the keystream (note the caller is responsible for using a platform specific entropy source to
+//! create the key and IV, these values seed the PRNG!):
+//!
+//! ```
+//! use enocoro128v2::Enocoro128;
+//!
+//! let key: [u8; 16] = [
+//!     0x4b, 0x8e, 0x29, 0x87, 0x80, 0x95, 0x96, 0xa3,
+//!     0xbb, 0x23, 0x82, 0x49, 0x9f, 0x1c, 0xe7, 0xc2,
+//! ];
+//!
+//! let iv: [u8; 8] = [0x3c, 0x1d, 0xbb, 0x05, 0xe3, 0xca, 0x60, 0xd9];
+//!
+//! let mut my_rand_buf = [0; 3];
+//! let mut my_rand_u16: u16 = 0;
+//! let mut my_rand_u64: u64 = 0;
+//!
+//! let mut e128 = Enocoro128::new(&key, &iv);
+//!
+//! e128.rand_buf(&mut my_rand_buf);
+//! assert!(my_rand_buf.iter().all(|&x| x != 0));
+//!
+//! my_rand_u16 = e128.rand_u16();
+//! assert_ne!(my_rand_u16, 0);
+//!
+//! my_rand_u64 = e128.rand_u64();
+//! assert_ne!(my_rand_u64, 0);
+//! ```
+//!
+//! ### References
+//!
+//! * [1] ["Pseudorandom Number Generator Enocoro", Hitachi Corporation (2010)](https://www.hitachi.com/rd/yrl/crypto/enocoro/index.html)
+//! * [2] ["Update on Enocoro Stream Cipher", Dai Watanabe et. al. (2010)](https://ieeexplore.ieee.org/document/5649627)
+//! * [3] ["Specifications of Ciphers in the Candidate Recommended Ciphers List", CRYPTREC (2013)](https://www.cryptrec.go.jp/en/method.html)
+//! * [4] ["Security Evaluation of Stream Cipher Enocoro-128v2", Martin Hell and Thomas Johansson (2010)](https://www.cryptrec.go.jp/exreport/cryptrec-ex-2008-2010.pdf)
+//! * [5] ["zeroize", Tony Arcieri (2019)](https://crates.io/crates/zeroize)
+//! * [6] [enocoro_ref_20100222.zip, Hitachi Corporation (2010)](https://www.hitachi.com/rd/yrl/crypto/enocoro/enocoro_ref_20100222.zip)
+//! * [7] [enocoro_tv_20100202.zip, Hitachi Corporation (2010)](https://www.hitachi.com/rd/yrl/crypto/enocoro/enocoro_ref_20100222.zip)
+
 #![no_std]
 #![deny(warnings)]
 
-mod consts;
-
-use consts::*;
 use zeroize::Zeroize;
 extern crate static_assertions as sa;
 
+mod consts;
+use consts::*;
+pub use consts::{E128_IV_LEN, E128_KEY_LEN};
+
+#[cfg(test)]
+mod test;
+
 // Verify reference config at compile time
-sa::const_assert!(E128_KEY_SIZE_BYTE == 16);
-sa::const_assert!(E128_IV_SIZE_BYTE == 8);
+sa::const_assert!(E128_KEY_LEN == 16);
+sa::const_assert!(E128_IV_LEN == 8);
 sa::const_assert!(K128_INIT_ROUND_NUM == 96);
 
-/// Composition of reference implementation's context, state, and buffer structures
+/// Composition of reference implementation's context, state, and buffer structures.
+/// Implements en/decryption and random (i.e. keystream getter) functions.
 #[derive(Debug, Zeroize)]
 #[zeroize(drop)]
 pub struct Enocoro128 {
-    key: [u8; E128_KEY_SIZE_BYTE],
-    iv: [u8; E128_IV_SIZE_BYTE],
-    state: [u8; E128_STATE_SIZE_BYTE],
-    buf: [u8; E128_BUF_SIZE_BYTE],
+    key: [u8; E128_KEY_LEN],
+    iv: [u8; E128_IV_LEN],
+    state: [u8; E128_STATE_LEN],
+    buf: [u8; E128_BUF_LEN],
     top: u8,
 }
 
 impl Enocoro128 {
     // Public APIs -----------------------------------------------------------------------------------------------------
 
-    /// Constructor
+    /// Constructor, note key and IV length are compile-time enforced.
     #[allow(clippy::trivially_copy_pass_by_ref)]
-    pub fn new(key: &[u8; E128_KEY_SIZE_BYTE], iv: &[u8; E128_IV_SIZE_BYTE]) -> Enocoro128 {
+    pub fn new(key: &[u8; E128_KEY_LEN], iv: &[u8; E128_IV_LEN]) -> Enocoro128 {
         let mut e128 = Enocoro128 {
-            key: [0; E128_KEY_SIZE_BYTE],
-            iv: [0; E128_IV_SIZE_BYTE],
-            state: [0; E128_STATE_SIZE_BYTE],
-            buf: [0; E128_BUF_SIZE_BYTE],
+            key: [0; E128_KEY_LEN],
+            iv: [0; E128_IV_LEN],
+            state: [0; E128_STATE_LEN],
+            buf: [0; E128_BUF_LEN],
             top: 0,
         };
 
@@ -44,22 +170,18 @@ impl Enocoro128 {
         e128
     }
 
-    /// Keystream initialization
+    /// Keystream initialization.
     pub fn init_keystream(&mut self) {
         let mut ctr = 0x1;
 
         // Verify safe initialization at compile time
-        sa::const_assert!(
-            E128_BUF_SIZE_BYTE
-                == (E128_KEY_SIZE_BYTE + E128_IV_SIZE_BYTE + E128_BUF_TAIL_INIT.len())
-        );
-        sa::const_assert!(E128_STATE_SIZE_BYTE == E128_STATE_INIT.len());
+        sa::const_assert!(E128_BUF_LEN == (E128_KEY_LEN + E128_IV_LEN + E128_BUF_TAIL_INIT.len()));
+        sa::const_assert!(E128_STATE_LEN == E128_STATE_INIT.len());
 
         // Set starting buf
-        self.buf[0..E128_KEY_SIZE_BYTE].copy_from_slice(&self.key);
-        self.buf[E128_KEY_SIZE_BYTE..(E128_KEY_SIZE_BYTE + E128_IV_SIZE_BYTE)]
-            .copy_from_slice(&self.iv);
-        self.buf[(E128_KEY_SIZE_BYTE + E128_IV_SIZE_BYTE)..].copy_from_slice(&E128_BUF_TAIL_INIT);
+        self.buf[0..E128_KEY_LEN].copy_from_slice(&self.key);
+        self.buf[E128_KEY_LEN..(E128_KEY_LEN + E128_IV_LEN)].copy_from_slice(&self.iv);
+        self.buf[(E128_KEY_LEN + E128_IV_LEN)..].copy_from_slice(&E128_BUF_TAIL_INIT);
 
         // Set starting state
         self.state[..].copy_from_slice(&E128_STATE_INIT);
@@ -73,42 +195,31 @@ impl Enocoro128 {
         }
     }
 
-    /// Stateful encryption (current keystream XORed with data), can be called repeatedly to continue applying keystream to data chunks
-    pub fn encrypt(&mut self, data: &mut [u8]) {
+    /// Stateful, in-place en/decryption (current keystream XORed with data).
+    /// Can be called repeatedly to continue applying keystream to data chunks of varying sizes.
+    /// For usecases where the entirety of the plaintext or ciphertext is never in memory at once
+    /// (e.g. data received/transmitted in chunks, potentially of varying sizes).
+    pub fn apply_keystream(&mut self, data: &mut [u8]) {
         for b_ptr in data {
             *b_ptr ^= self.state[1];
             self.next128();
         }
     }
 
-    /// Stateless encryption (keystream XORed with data), uses an ephemeral instance of the cipher state, zeroed on drop
+    /// Stateless, in-place en/decryption (keystream XORed with data).
+    /// Uses an ephemeral instance of the cipher, zeroed on function return.
+    /// For usecases where the entirety of the plaintext or ciphertext is in-memory at once.
     #[allow(clippy::trivially_copy_pass_by_ref)]
-    pub fn encrypt_static(
-        key: &[u8; E128_KEY_SIZE_BYTE],
-        iv: &[u8; E128_IV_SIZE_BYTE],
+    pub fn apply_keystream_static(
+        key: &[u8; E128_KEY_LEN],
+        iv: &[u8; E128_IV_LEN],
         data: &mut [u8],
     ) {
         let mut e128 = Enocoro128::new(key, iv);
-        e128.encrypt(data);
+        e128.apply_keystream(data);
     }
 
-    /// Stateful decryption (current keystream XORed with data), can be called repeatedly to continue applying keystream to data chunks
-    pub fn decrypt(&mut self, data: &mut [u8]) {
-        self.encrypt(data);
-    }
-
-    /// Stateless encryption (keystream XORed with data), uses an ephemeral instance of the cipher state, zeroed on drop
-    #[allow(clippy::trivially_copy_pass_by_ref)]
-    pub fn decrypt_static(
-        key: &[u8; E128_KEY_SIZE_BYTE],
-        iv: &[u8; E128_IV_SIZE_BYTE],
-        data: &mut [u8],
-    ) {
-        let mut e128 = Enocoro128::new(key, iv);
-        e128.decrypt(data);
-    }
-
-    /// Fill buffer from keystream
+    /// Fill arbitrary length buffer from keystream.
     pub fn rand_buf(&mut self, r: &mut [u8]) {
         for b_ptr in r {
             *b_ptr = self.state[1];
@@ -116,7 +227,7 @@ impl Enocoro128 {
         }
     }
 
-    /// Get u8 from keystream
+    /// Get u8 from keystream.
     pub fn rand_u8(&mut self) -> u8 {
         let mut tmp_buf: [u8; 1] = [0x00; 1];
         self.rand_buf(&mut tmp_buf);
@@ -124,33 +235,33 @@ impl Enocoro128 {
         tmp_buf[0]
     }
 
-    /// Get u16 from keystream
-    /// Byte packing, no-std alternative to std::mem::transmute
+    /// Get u16 from keystream.
     pub fn rand_u16(&mut self) -> u16 {
         let mut tmp_buf: [u8; 2] = [0x00; 2];
         self.rand_buf(&mut tmp_buf);
 
+        // Byte packing, no-std alternative to std::mem::transmute.
         u16::from(tmp_buf[0]) + (u16::from(tmp_buf[1]) << 8)
     }
 
-    /// Get u32 from keystream
-    /// Byte packing, no-std alternative to std::mem::transmute
+    /// Get u32 from keystream.
     pub fn rand_u32(&mut self) -> u32 {
         let mut tmp_buf: [u8; 4] = [0x00; 4];
         self.rand_buf(&mut tmp_buf);
 
+        // Byte packing, no-std alternative to std::mem::transmute.
         u32::from(tmp_buf[0])
             + (u32::from(tmp_buf[1]) << 8)
             + (u32::from(tmp_buf[2]) << 16)
             + (u32::from(tmp_buf[3]) << 24)
     }
 
-    /// Get u64 from keystream
-    /// Byte packing, no-std alternative to std::mem::transmute
+    /// Get u64 from keystream.
     pub fn rand_u64(&mut self) -> u64 {
         let mut tmp_buf: [u8; 8] = [0x00; 8];
         self.rand_buf(&mut tmp_buf);
 
+        // Byte packing, no-std alternative to std::mem::transmute.
         u64::from(tmp_buf[0])
             + (u64::from(tmp_buf[1]) << 8)
             + (u64::from(tmp_buf[2]) << 16)
@@ -161,12 +272,12 @@ impl Enocoro128 {
             + (u64::from(tmp_buf[7]) << 56)
     }
 
-    /// Get u128 from keystream
-    /// Byte packing, no-std alternative to std::mem::transmute
+    /// Get u128 from keystream.
     pub fn rand_u128(&mut self) -> u128 {
         let mut tmp_buf: [u8; 16] = [0x00; 16];
         self.rand_buf(&mut tmp_buf);
 
+        // Byte packing, no-std alternative to std::mem::transmute.
         u128::from(tmp_buf[0])
             + (u128::from(tmp_buf[1]) << 8)
             + (u128::from(tmp_buf[2]) << 16)
@@ -187,10 +298,10 @@ impl Enocoro128 {
 
     // Private APIs ----------------------------------------------------------------------------------------------------
 
-    /// Update cipher state
-    /// TODO: make this configurable for release profile
-    /// Inlining means 3x code duplication (init, en/decrypt, rand)
-    /// but also removes function call overhead from per-byte processing loops
+    // Inlining means 3x code duplication (init, en/decrypt, rand)
+    // but also removes per-byte function call overhead for tight loops.
+    // TODO: make this configurable for the "small" profile once custom profiles are on Rust Stable
+    /// Update cipher state.
     #[inline(always)]
     fn next128(&mut self) {
         let mut tmp: [u8; 3] = [0x0, 0x0, 0x0];
@@ -225,7 +336,3 @@ impl Enocoro128 {
         self.buf[self.top as usize] ^= tmp[0];
     }
 }
-
-// TODO: move to lib.rs header
-#[cfg(test)]
-mod test;
