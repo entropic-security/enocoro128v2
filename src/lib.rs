@@ -1,5 +1,5 @@
-//! Safe Rust, `#![no_std]` implementation of Enocoro-128v2 [1], the updated variant [2] of a lightweight, CRYPTREC candidate [3] stream cipher.
-//! No practical attacks against Enocoro-128v2 have been reported [4].
+//! Safe Rust, `#![no_std]` implementation of Enocoro-128v2 \[1\], the updated variant \[2\] of a lightweight, CRYPTREC candidate \[3\] stream cipher.
+//! No practical attacks against Enocoro-128v2 have been reported \[4\].
 //!
 //! ### Functionality
 //!
@@ -9,9 +9,9 @@
 //! ### Implementation
 //!
 //! * Operational in baremetal environments: no standard library dependencies, no dynamic memory allocation
-//! * State securely wiped from memory on drop [5]
-//! * Close mapping to Hitachi's C reference implementation [6] for audit-friendly code
-//! * Verified using Hitachi's official test vectors [7]
+//! * State securely wiped from memory on drop \[5\]
+//! * Close mapping to Hitachi's C reference implementation \[6\] for audit-friendly code
+//! * Verified using Hitachi's official test vectors \[7\]
 //!
 //! ### Usage
 //!
