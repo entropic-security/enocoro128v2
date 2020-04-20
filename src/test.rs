@@ -1,5 +1,3 @@
-#![deny(warnings)]
-
 // Note these imports are only for testing, not required/linked for the library
 extern crate std;
 use std::collections::HashMap;
@@ -319,7 +317,7 @@ fn parse_test_vector_file() -> TestCollector {
 // Validate that internal state matches expected
 #[inline(always)]
 fn internals_in_lockstep(e128: &Enocoro128, rd: &RoundData) -> bool {
-    ((e128.state == rd.state) && (e128.buf == rd.buf))
+    (e128.state == rd.state) && (e128.buf == rd.buf)
 }
 
 // For inspecting state during initialization rounds (occur within Enocoro128 constructor)

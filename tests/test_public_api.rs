@@ -1,5 +1,3 @@
-#![deny(warnings)]
-
 use enocoro128v2::Enocoro128;
 
 static KEY: [u8; 16] = [

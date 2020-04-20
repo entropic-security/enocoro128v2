@@ -18,10 +18,14 @@ No practical attacks against Enocoro-128v2 have been reported [4].
 * Close mapping to Hitachi's C reference implementation [6] for audit-friendly code
 * Verified using Hitachi's official test vectors [7]
 
+### Considerations
+
+* Encryption alone does *not* protect against data modification: depending on your usecase, this library may need to be combined with a Hash-based Message Authentication Code (HMAC)
+* PRNG functions must be seeded from a platform-specific entropy source
+
 ### Usage
 
-
-When the entirety of the plaintext or ciphertext is in-memory at once, a simplified API can be used:
+When the entirety of the plaintext or ciphertext is in-memory at once, a simplified API (associated functions) can be used:
 
 ```rust
 use enocoro128v2::Enocoro128;
@@ -48,7 +52,7 @@ Enocoro128::apply_keystream_static(&key, &iv, &mut msg);
 assert_eq!(msg, plaintext);
 ```
 
-If entirety of the plaintext or ciphertext is never in memory at once (e.g. data received/transmitted in chunks, potentially of varying sizes):
+If entirety of the plaintext or ciphertext is never in memory at once (e.g. data received/transmitted in chunks, potentially of varying sizes), the instance API can be used:
 
 ```rust
 use enocoro128v2::Enocoro128;
@@ -91,11 +95,13 @@ create the key and IV, these values seed the PRNG!):
 ```rust
 use enocoro128v2::Enocoro128;
 
+// Assuming bytes gathered from a reliable, platform-specific entropy source
 let key: [u8; 16] = [
     0x4b, 0x8e, 0x29, 0x87, 0x80, 0x95, 0x96, 0xa3,
     0xbb, 0x23, 0x82, 0x49, 0x9f, 0x1c, 0xe7, 0xc2,
 ];
 
+// Assuming bytes gathered from a reliable, platform-specific entropy source
 let iv: [u8; 8] = [0x3c, 0x1d, 0xbb, 0x05, 0xe3, 0xca, 0x60, 0xd9];
 
 let mut my_rand_buf = [0; 3];
