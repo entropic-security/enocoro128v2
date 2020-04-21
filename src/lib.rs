@@ -18,7 +18,7 @@
 //!
 //!### Considerations
 //!
-//!* Encryption alone does *not* protect against data modification: depending on your usecase, this library may need to be combined with a Hash-based Message Authentication Code (HMAC)
+//!* Encryption alone does *not* guarantee integrity or authenticity: depending on your usecase, this library may need to be combined with a Hash-based Message Authentication Code (HMAC)
 //!* PRNG functions must be seeded from a platform-specific entropy source
 //!
 //!### Usage
@@ -247,28 +247,28 @@ impl Enocoro128 {
     pub fn rand_u16(&mut self) -> u16 {
         let mut tmp_buf: [u8; 2] = [0x00; 2];
         self.rand_buf(&mut tmp_buf);
-        u16::from_ne_bytes(tmp_buf)
+        u16::from_le_bytes(tmp_buf)
     }
 
     /// Get u32 from keystream.
     pub fn rand_u32(&mut self) -> u32 {
         let mut tmp_buf: [u8; 4] = [0x00; 4];
         self.rand_buf(&mut tmp_buf);
-        u32::from_ne_bytes(tmp_buf)
+        u32::from_le_bytes(tmp_buf)
     }
 
     /// Get u64 from keystream.
     pub fn rand_u64(&mut self) -> u64 {
         let mut tmp_buf: [u8; 8] = [0x00; 8];
         self.rand_buf(&mut tmp_buf);
-        u64::from_ne_bytes(tmp_buf)
+        u64::from_le_bytes(tmp_buf)
     }
 
     /// Get u128 from keystream.
     pub fn rand_u128(&mut self) -> u128 {
         let mut tmp_buf: [u8; 16] = [0x00; 16];
         self.rand_buf(&mut tmp_buf);
-        u128::from_ne_bytes(tmp_buf)
+        u128::from_le_bytes(tmp_buf)
     }
 
     // Private APIs ----------------------------------------------------------------------------------------------------

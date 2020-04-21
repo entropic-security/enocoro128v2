@@ -20,7 +20,7 @@ No practical attacks against Enocoro-128v2 have been reported [4].
 
 ### Considerations
 
-* Encryption alone does *not* protect against data modification: depending on your usecase, this library may need to be combined with a Hash-based Message Authentication Code (HMAC)
+* Encryption alone does *not* guarantee integrity or authenticity: depending on your usecase, this library may need to be combined with a Hash-based Message Authentication Code (HMAC)
 * PRNG functions must be seeded from a platform-specific entropy source
 
 ### Usage
