@@ -31,9 +31,9 @@ panic = 'abort'
 opt-level = 3
 debug = false
 rpath = false
-lto = "thin"
+lto = "fat"
 debug-assertions = false
-codegen-units = 1
+codegen-units = 16
 incremental = false
 overflow-checks = false
 
