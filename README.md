@@ -1,7 +1,7 @@
 # enocoro128v2
 
 ![crates.io](https://img.shields.io/crates/v/enocoro128v2.svg)
-![GitHub Actions](https://github.com/entropy-security/enocoro128v2/workflows/Test/badge.svg)
+![GitHub Actions](https://github.com/entropic-security/enocoro128v2/workflows/test/badge.svg)
 
 Safe Rust, `#![no_std]` implementation of Enocoro-128v2 [1], the updated variant [2] of a lightweight, CRYPTREC candidate [3] stream cipher.
 No practical attacks against Enocoro-128v2 have been reported [4].

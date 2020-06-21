@@ -1,12 +1,12 @@
 [package]
 name = "enocoro128v2"
-version = "0.1.4"
+version = "0.1.5"
 authors = ["Tiemoko Ballo"]
 edition = "2018"
 license = "MIT"
 readme = "README.md"
-homepage = "https://github.com/entropy-security/enocoro128v2"
-repository = "https://github.com/entropy-security/enocoro128v2"
+homepage = "https://github.com/entropic-security/enocoro128v2"
+repository = "https://github.com/entropic-security/enocoro128v2"
 documentation = "https://docs.rs/enocoro128v2"
 categories = ["cryptography", "no-std", "embedded"]
 keywords = ["encryption", "no-std", "enocoro", "enocoro128", "enocoro128v2"]
