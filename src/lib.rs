@@ -1,7 +1,4 @@
-//!# enocoro128v2
-//!
-//!
-//!Safe Rust, `#![no_std]` implementation of Enocoro-128v2 [1], the updated variant [2] of a lightweight, CRYPTREC candidate [3] stream cipher.
+//!`#![forbid(unsafe_code)]`, `#![no_std]` implementation of Enocoro-128v2 [1], the updated variant [2] of a lightweight, CRYPTREC candidate [3] stream cipher.
 //!No practical attacks against Enocoro-128v2 have been reported [4].
 //!
 //!### Functionality
@@ -130,6 +127,7 @@
 //!* [7] [enocoro_tv_20100202.zip, Hitachi Corporation (2010)](https://www.hitachi.com/rd/yrl/crypto/enocoro/enocoro_ref_20100222.zip)
 
 #![no_std]
+#![forbid(unsafe_code)]
 
 use zeroize::Zeroize;
 extern crate static_assertions as sa;

@@ -1,6 +1,6 @@
 [package]
 name = "enocoro128v2"
-version = "0.1.5"
+version = "0.1.6"
 authors = ["Tiemoko Ballo"]
 edition = "2018"
 license = "MIT"
@@ -9,8 +9,8 @@ homepage = "https://github.com/entropic-security/enocoro128v2"
 repository = "https://github.com/entropic-security/enocoro128v2"
 documentation = "https://docs.rs/enocoro128v2"
 categories = ["cryptography", "no-std", "embedded"]
-keywords = ["encryption", "no-std", "enocoro", "enocoro128", "enocoro128v2"]
-description = "Safe, no-std Enocoro-128 (Version 2) stream cipher implementation. Verified using Hitachi's official test vectors."
+keywords = ["encryption", "no_std", "enocoro", "enocoro128", "enocoro128v2"]
+description = "Safe, embedded-friendly Enocoro-128 (Version 2) stream cipher. Verified using Hitachi's official test vectors."
 include = [
     "**/*.rs",
     "**/*.md",
@@ -20,30 +20,5 @@ include = [
 ]
 
 [dependencies]
-zeroize = {version = "1.1.0", features = ["zeroize_derive"], default-features = false}
-static_assertions = "1.1.0"
-
-[profile.dev]
-panic = "abort"
-
-[profile.release]
-panic = 'abort'
-opt-level = 3
-debug = false
-rpath = false
-lto = "fat"
-debug-assertions = false
-codegen-units = 16
-incremental = false
-overflow-checks = false
-
-#[profile.small]
-#panic = 'abort'
-#opt-level = 'z'
-#debug = false
-#rpath = false
-#lto = true
-#debug-assertions = false
-#codegen-units = 1
-#incremental = false
-#overflow-checks = false
+zeroize = {version = "^1", features = ["zeroize_derive"], default-features = false}
+static_assertions = "^1"
